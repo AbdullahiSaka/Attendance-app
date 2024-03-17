@@ -28,5 +28,4 @@ with st.form(key='student_info_form'):
     submit_button = st.form_submit_button(label='Submit')
 
 if submit_button:
-    # Here you can process the student's name and ID
     st.write(f"Name: {name}, Student ID: {student_id}")
