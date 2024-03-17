@@ -19,43 +19,65 @@ def save_data(name, student_id, latitude, longitude):
     data.to_csv('student_data.csv', index=False)
 
 # Streamlit app layout
-st.title('MSc Student Attendance System')
+st.title('Student Information and GPS Capture')
 
-# Input fields for name and student ID
-name = st.text_input('Enter your name', key='name')
-student_id = st.text_input('Enter your student ID', key='student_id')
-
-# JavaScript to capture GPS location and trigger form submission
+# JavaScript to prompt for location services
 st.markdown("""
     <script>
         function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(showPosition);
-            } else { 
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    Streamlit.setComponentValue(JSON.stringify({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    }));
+                }, function(error) {
+                    console.error('Error occurred: ', error);
+                    Streamlit.setComponentValue(JSON.stringify({error: error.message}));
+                }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 0});
+            } else {
                 console.log("Geolocation is not supported by this browser.");
+                Streamlit.setComponentValue(JSON.stringify({error: "Geolocation is not supported by this browser."}));
             }
         }
 
-        function showPosition(position) {
-            document.getElementById('latitude').value = position.coords.latitude;
-            document.getElementById('longitude').value = position.coords.longitude;
-            document.getElementById('hidden_submit').click(); // Trigger form submission
-        }
-
-        window.onload = getLocation; // Trigger location capture on page load
+        // Trigger location request when the window loads
+        window.onload = getLocation;
     </script>
-    <input type='text' id='latitude' hidden>
-    <input type='text' id='longitude' hidden>
 """, unsafe_allow_html=True)
 
-# Hidden form to submit GPS coordinates
-if st.button('Click to submit your information', key='hidden_submit'):
-    # Using the st.session_state to access values set by JavaScript
-    latitude = st.session_state.get('latitude', '')
-    longitude = st.session_state.get('longitude', '')
+# Listen for location data or errors sent back from JavaScript
+location_data = st.empty()
 
-    if name and student_id and latitude and longitude:
-        save_data(name, student_id, latitude, longitude)
-        st.success('Student data saved successfully!')
-    else:
-        st.error('Failed to capture GPS coordinates. Please ensure your location services are enabled and try again.')
+# Input fields for name and student ID, hidden until location is fetched
+name = st.empty()
+student_id = st.empty()
+submit_button = st.empty()
+
+# Use session_state to store whether location has been fetched to avoid re-fetching on reruns
+if 'location_fetched' not in st.session_state:
+    st.session_state['location_fetched'] = False
+
+if st.session_state['location_fetched']:
+    # Display input fields for name and student ID
+    name = name.text_input('Enter your name', key='name')
+    student_id = student_id.text_input('Enter your student ID', key='student_id')
+    submit_button = submit_button.button('Submit')
+
+# When the location is fetched or if there's an error
+if st.experimental_get_query_params():
+    location_json = st.experimental_get_query_params().get('data', [None])[0]
+    if location_json:
+        location = pd.json_normalize(json.loads(location_json))
+        if 'error' not in location:
+            st.session_state['location_fetched'] = True
+            latitude = location['latitude'].values[0]
+            longitude = location['longitude'].values[0]
+            location_data.json({'Latitude': latitude, 'Longitude': longitude})
+        else:
+            location_data.error(location['error'].values[0])
+
+if submit_button and name and student_id and 'latitude' in st.session_state and 'longitude' in st.session_state:
+    # Save the data when the form is submitted
+    save_data(name, student_id, st.session_state['latitude'], st.session_state['longitude'])
+    st.success('Student data saved successfully!')
