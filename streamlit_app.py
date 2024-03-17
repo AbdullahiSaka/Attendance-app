@@ -22,8 +22,8 @@ def save_data(name, student_id, latitude, longitude):
 # Streamlit app layout
 st.title('Student Information and GPS Capture')
 
-# Attempt to get geolocation
-location = get_geolocation(timeout=5000)
+# Attempt to get geolocation without the timeout parameter
+location = get_geolocation()
 
 if location:
     latitude, longitude = location["latitude"], location["longitude"]
