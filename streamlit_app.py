@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from streamlit_js_eval import streamlit_js_eval, get_geolocation
+from streamlit_js_eval import get_geolocation
 
 # Function to save data to a CSV file
 def save_data(name, student_id, latitude, longitude):
@@ -22,10 +22,10 @@ def save_data(name, student_id, latitude, longitude):
 # Streamlit app layout
 st.title('Student Information and GPS Capture')
 
-# Attempt to get geolocation without the timeout parameter
+# Attempt to get geolocation
 location = get_geolocation()
 
-if location:
+if location and 'latitude' in location and 'longitude' in location:
     latitude, longitude = location["latitude"], location["longitude"]
     st.write(f"Latitude: {latitude}, Longitude: {longitude}")
 else:
@@ -35,7 +35,7 @@ else:
 name = st.text_input('Enter your name')
 student_id = st.text_input('Enter your student ID')
 
-if st.button('Submit') and name and student_id and location:
+if st.button('Submit') and name and student_id and 'latitude' in location and 'longitude' in location:
     save_data(name, student_id, latitude, longitude)
     st.success('Student data saved successfully!')
 else:
