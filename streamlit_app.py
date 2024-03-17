@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from streamlit_js_eval import get_geolocation
 
 # Function to save data to a CSV file
 def save_data(name, student_id, latitude, longitude):
@@ -22,28 +21,38 @@ def save_data(name, student_id, latitude, longitude):
 # Streamlit app layout
 st.title('Student Information and GPS Capture')
 
-# Attempt to get geolocation
-location = get_geolocation()
+# Embed HTML and JavaScript for HTML5 Geolocation
+st.markdown("""
+    <div id="location"></div>
+    <script>
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+                document.getElementById('location').innerHTML =
+                    'Latitude: ' + lat + '<br>Longitude: ' + lon;
+            },
+            function(error) {
+                document.getElementById('location').innerHTML = 'Error: ' + error.message;
+            },
+            {enableHighAccuracy: true, timeout: 10000}
+        );
+    </script>
+""", unsafe_allow_html=True)
 
-# Check if 'latitude' and 'longitude' are in the location dictionary
-if location and 'latitude' in location and 'longitude' in location:
-    latitude, longitude = location["latitude"], location["longitude"]
-    st.write(f"Latitude: {latitude}, Longitude: {longitude}")
-else:
-    st.error("Failed to retrieve your location. Please ensure location services are enabled and try again, or manually enter your location.")
-
-# Input fields for name and student ID, and manual location entry as a fallback
+# Input fields for name and student ID
 name = st.text_input('Enter your name')
 student_id = st.text_input('Enter your student ID')
+
+# Manual input fields for latitude and longitude as a fallback
 latitude_manual = st.text_input('Enter your Latitude (if automatic location failed)')
 longitude_manual = st.text_input('Enter your Longitude (if automatic location failed)')
 
-# Use automatic location if available, otherwise fall back to manual entry
-latitude = latitude if 'latitude' in locals() else latitude_manual
-longitude = longitude if 'longitude' in locals() else longitude_manual
-
-if st.button('Submit') and name and student_id and latitude and longitude:
-    save_data(name, student_id, latitude, longitude)
-    st.success('Student data saved successfully!')
-else:
-    st.error('Please fill in all the fields and ensure you have either provided location access or entered your location manually.')
+# Submit button
+if st.button('Submit'):
+    if name and student_id and (latitude_manual and longitude_manual):
+        # Save the data when the form is submitted
+        save_data(name, student_id, latitude_manual, longitude_manual)
+        st.success('Student data saved successfully!')
+    else:
+        st.error('Please fill in all the fields.')
