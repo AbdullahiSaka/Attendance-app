@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
 # Function to save data to a CSV file
 def save_data(name, student_id, latitude, longitude):
@@ -21,63 +22,21 @@ def save_data(name, student_id, latitude, longitude):
 # Streamlit app layout
 st.title('Student Information and GPS Capture')
 
-# JavaScript to prompt for location services
-st.markdown("""
-    <script>
-        function getLocation() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    Streamlit.setComponentValue(JSON.stringify({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    }));
-                }, function(error) {
-                    console.error('Error occurred: ', error);
-                    Streamlit.setComponentValue(JSON.stringify({error: error.message}));
-                }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 0});
-            } else {
-                console.log("Geolocation is not supported by this browser.");
-                Streamlit.setComponentValue(JSON.stringify({error: "Geolocation is not supported by this browser."}));
-            }
-        }
+# Attempt to get geolocation
+location = get_geolocation(timeout=5000)
 
-        // Trigger location request when the window loads
-        window.onload = getLocation;
-    </script>
-""", unsafe_allow_html=True)
+if location:
+    latitude, longitude = location["latitude"], location["longitude"]
+    st.write(f"Latitude: {latitude}, Longitude: {longitude}")
+else:
+    st.error("Failed to retrieve your location. Please ensure location services are enabled and try again.")
 
-# Listen for location data or errors sent back from JavaScript
-location_data = st.empty()
+# Input fields for name and student ID
+name = st.text_input('Enter your name')
+student_id = st.text_input('Enter your student ID')
 
-# Input fields for name and student ID, hidden until location is fetched
-name = st.empty()
-student_id = st.empty()
-submit_button = st.empty()
-
-# Use session_state to store whether location has been fetched to avoid re-fetching on reruns
-if 'location_fetched' not in st.session_state:
-    st.session_state['location_fetched'] = False
-
-if st.session_state['location_fetched']:
-    # Display input fields for name and student ID
-    name = name.text_input('Enter your name', key='name')
-    student_id = student_id.text_input('Enter your student ID', key='student_id')
-    submit_button = submit_button.button('Submit')
-
-# When the location is fetched or if there's an error
-if st.experimental_get_query_params():
-    location_json = st.experimental_get_query_params().get('data', [None])[0]
-    if location_json:
-        location = pd.json_normalize(json.loads(location_json))
-        if 'error' not in location:
-            st.session_state['location_fetched'] = True
-            latitude = location['latitude'].values[0]
-            longitude = location['longitude'].values[0]
-            location_data.json({'Latitude': latitude, 'Longitude': longitude})
-        else:
-            location_data.error(location['error'].values[0])
-
-if submit_button and name and student_id and 'latitude' in st.session_state and 'longitude' in st.session_state:
-    # Save the data when the form is submitted
-    save_data(name, student_id, st.session_state['latitude'], st.session_state['longitude'])
+if st.button('Submit') and name and student_id and location:
+    save_data(name, student_id, latitude, longitude)
     st.success('Student data saved successfully!')
+else:
+    st.error('Please fill in all the fields.')
