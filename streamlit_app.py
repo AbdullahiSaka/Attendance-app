@@ -25,18 +25,25 @@ st.title('Student Information and GPS Capture')
 # Attempt to get geolocation
 location = get_geolocation()
 
+# Check if 'latitude' and 'longitude' are in the location dictionary
 if location and 'latitude' in location and 'longitude' in location:
     latitude, longitude = location["latitude"], location["longitude"]
     st.write(f"Latitude: {latitude}, Longitude: {longitude}")
 else:
-    st.error("Failed to retrieve your location. Please ensure location services are enabled and try again.")
+    st.error("Failed to retrieve your location. Please ensure location services are enabled and try again, or manually enter your location.")
 
-# Input fields for name and student ID
+# Input fields for name and student ID, and manual location entry as a fallback
 name = st.text_input('Enter your name')
 student_id = st.text_input('Enter your student ID')
+latitude_manual = st.text_input('Enter your Latitude (if automatic location failed)')
+longitude_manual = st.text_input('Enter your Longitude (if automatic location failed)')
 
-if st.button('Submit') and name and student_id and 'latitude' in location and 'longitude' in location:
+# Use automatic location if available, otherwise fall back to manual entry
+latitude = latitude if 'latitude' in locals() else latitude_manual
+longitude = longitude if 'longitude' in locals() else longitude_manual
+
+if st.button('Submit') and name and student_id and latitude and longitude:
     save_data(name, student_id, latitude, longitude)
     st.success('Student data saved successfully!')
 else:
-    st.error('Please fill in all the fields.')
+    st.error('Please fill in all the fields and ensure you have either provided location access or entered your location manually.')
