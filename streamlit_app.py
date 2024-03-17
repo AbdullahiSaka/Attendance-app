@@ -19,7 +19,7 @@ def save_data(name, student_id, latitude, longitude):
     data.to_csv('student_data.csv', index=False)
 
 # Streamlit app layout
-st.title('Student Information and GPS Capture')
+st.title('Student Attendance System')
 
 # Embed HTML and JavaScript for HTML5 Geolocation
 st.markdown("""
