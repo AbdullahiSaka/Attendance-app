@@ -1,2 +1,7 @@
-streamlit-js-eval
-bokeh
+streamlit
+pandas 
+numpy
+matplotlib.pyplot
+math
+pi
+seaborn
